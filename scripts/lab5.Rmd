@@ -1,0 +1,118 @@
+---
+title: "Lab 5"
+author: "Aaron Rothbart"
+date: "October 21, 2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE) 
+```
+
+1. Create a RStudio Project on your machine.
+
+* Within the Project create a folder for *data* and *scripts*.
+* Download the following three datasets into the project *data* folder.
+  + *sesame13.sav*
+  + *star.csv*
+  + *ais.xlsx*
+
+2. Read in the following three datasets, using `{here}` and `{rio}`:
+  * *sesame13.sav*
+  * *star.csv*
+  * *ais.xlsx*
+  
+install.packages("here")
+
+install.packages("rio")
+
+**Hint**: For the *ais.xlsx* dataset look at the `skip` argument within the `rio` help documentation.
+  
+```{r import}
+library(here)
+library(rio)
+library(tidyverse)
+library(janitor)
+here()
+here("data")
+list.files(here("data"))
+
+?rio
+?read_delim
+
+ais <- import(here("data", "ais.xlsx"), skip = 15)
+sesame <- import(here("data", "sesame13.sav"))
+star <- import(here("data", "star.csv"))
+
+```
+
+3. Using the `ais` data, compute the average red blood cell count and average bmi by sport. Output these data as SPSS and EXCEL files. 
+
+```{r q2}
+
+output <- ais %>% 
+  group_by(sport) %>% 
+  summarize(mean_rcc = mean(rcc),
+            mean_bmi = mean(bmi))
+
+export(output, "output_measures.sav")
+export(output, "output_measures.xlsx")
+
+```
+
+4. Use the `sesame` dataset to answer the following question: Was the average female age higher in schools or at home? 
+
+The average female age was higher in schools (53.06) as compared with the home environment (49.42).
+
+```{r q3}
+
+sesame %>% 
+  characterize() %>% 
+  filter(sex == "Female") %>% 
+  group_by(setting) %>% 
+  summarize(mean_age = mean(age))
+
+```
+
+5. First, how many rows and columns are in the *star* dataset? Next, remove outliers using a really poor method, just for practice, by eliminating students whose math (*tmathss*) scores were more than three standard deviations **above or below** the corresponding mean. How many rows are in the dataset now?
+
+Total: Rows = 5,748; Columns = 12
+Elimination Column Total: 5,743
+
+install.packages("skimr")
+
+```{r q4}
+
+head(star)
+library(skimr)
+skim(star)
+
+star %>% 
+  filter(tmathss <= mean(tmathss) + 3*sd(tmathss) &
+           tmathss >= mean(tmathss) - 3*sd(tmathss)) %>% 
+  nrow()
+```
+
+6. Use the `star` dataset to compute standardized math and reading scores; name these variables *tmathss* and *treadss*. This means, for each of these variables, subtract the mean from each observation and divide by the standard deviation: $x_s = \frac{x_i - \bar{X}}{sd(X)}$. 
+  + Check that your computations were correct by computing the mean and standard deviation of each variable (they should be 0 and 1). 
+  + Compute the mean of the standardized variable for all *sex*/*frl* combinations (I'm asking you to extend what you know here, we haven't talked explicitly about how to do this yet, but you have seen examples). 
+  + What do you make of these findings? Do you see an effect by *sex*? An *FRL* effect? Is there evidence of an interaction (i.e., that the effect of *FRL* is greater for boys versus girls)?
+  
+There appears to be an equal effect across sexes, especially in reading; however, there appears to be similar changes in math performance improvments for students not receiving FRL across both sexes. 
+
+```{r q5}
+
+star %>% 
+  mutate(stand_math = (tmathss - mean(tmathss)) / sd(tmathss), 
+         stand_read = (treadss - mean(treadss)) / sd(treadss)) %>%
+  group_by(sex, frl) %>% 
+  summarize(stand_math_mean = mean(stand_math),
+            stand_math_sd = sd(stand_math),
+            stand_read_mean = mean(stand_read),
+            stand_read_sd = sd(stand_read)) 
+
+```
+
+Please submit you .Rmd file, as well as the rendered .html file.
